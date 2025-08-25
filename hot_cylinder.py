@@ -13,7 +13,8 @@ class HotCylinder():
         self.body_grid = None
         self.label_positions = []
         self.label_texts = []
-
+        self.el = {}
+        self.el_idx = 0
     
     def create_body(self, height=4.0, radius=1.0, n_theta=100, n_z=100):
         """构建网格圆柱体，高为 height，半径为 radius，网格为 n_theta x n_z"""
@@ -85,19 +86,21 @@ class HotCylinder():
         pos = np.array([x, y, z])
         
         # 使用红色小球表示标记
-        sphere_radius = 0.03*2
+        sphere_radius = 0.03*10
         sphere = pv.Sphere(radius=sphere_radius, center=pos)
-        self.pl.add_mesh(sphere, color="red")
+        el = self.pl.add_mesh(sphere, color="red")
         self.label_positions.append(pos)
         self.label_texts.append(msg)
+        self.el[f"marker_{self.el_idx}"] = el
+        self.el_idx += 1
 
     def _add_box(
-            self, 
-            x,y,z,width,length,height,
-            **kargs,
+            self, x,y,z,width,length,height,**kargs,
         ):
         box = pv.Box(bounds=[x-width/2, x+width/2, y-length/2, y+length/2, z-height/2, z+height/2])
-        self.pl.add_mesh(box, **kargs)
+        el = self.pl.add_mesh(box, **kargs)
+        self.el[f"box_{self.el_idx}"] = el
+        self.el_idx += 1
 
     def add_markers(self, markers: list):
         for marker in markers:
@@ -109,7 +112,7 @@ class HotCylinder():
         # print(self.label_positions)
         # print(self.label_texts)
 
-        self.pl.add_point_labels(
+        el = self.pl.add_point_labels(
             self.label_positions,
             self.label_texts,
             font_size=12,
@@ -119,6 +122,7 @@ class HotCylinder():
             shape_opacity=0.5,
             always_visible=True,
         )
+        self.el["markers"] = el
 
     def _add_arrow(self, theta, z):
         # 热斑中心点（圆柱体表面）
@@ -165,6 +169,7 @@ class HotCylinder():
             # opacity=0.9
             **kargs
         )
+        self.el["body"] = self.actor_mesh
 
     # 旋转矩形 -------------------------------------------------
 
@@ -283,3 +288,18 @@ class HotCylinder():
         # height = z
 
         return theta_rad
+
+    def clean_all(self):
+        self.pl.clear()
+        # self.pl.clear_actors()
+        # 清空元素
+        for k in self.el.keys():
+            # print(k)
+            self.pl.remove_actor(self.el[k])
+        
+        # 清空文本标记
+        self.label_positions.clear()
+        self.label_texts.clear()
+
+        # 清空热力图
+        self.heat = np.zeros_like(self.body_theta_grid)  # 热力图网格

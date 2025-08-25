@@ -23,7 +23,7 @@ os.environ["QT_API"] = "pyside6"
 # 一共有300多组数据，前面的都是两个冲击的，后面有81个4个冲击的
 
 heat_spots = [
-    # {"theta": np.pi,     "z": 15.0, "diameter_theta": np.pi / 8, "diameter_z": 0.7},
+    {"theta": np.pi,     "z": 15.0, "diameter_theta": np.pi / 8, "diameter_z": 0.7},
     # {"theta": np.pi,     "z": 10.0, "diameter_theta": np.pi / 4, "diameter_z": 2},
     # {"theta": np.pi,     "z": 6.0,  "diameter_theta": np.pi / 8, "diameter_z": 0.7},
     # {"theta": np.pi,     "z": 5.0,  "diameter_theta": np.pi / 8, "diameter_z": 0.7},
@@ -33,16 +33,16 @@ heat_spots = [
     # {"theta": np.pi,     "z": 100.0,  "diameter_theta": np.pi / 8, "diameter_z": 7},
     # {"theta": np.pi,     "z": 60.0,   "diameter_theta": np.pi / 8, "diameter_z": 7},
     # {"theta": np.pi,     "z": 50.0,   "diameter_theta": np.pi / 8, "diameter_z": 7},
-    {"theta": .06,     "z": 40.0,   "diameter_theta": np.pi / 8, "diameter_z": 7},
-    {"theta": .06,     "z": 30.0,   "diameter_theta": np.pi / 8, "diameter_z": 7},
-    {"theta": .06,     "z": 20.0,   "diameter_theta": np.pi / 8, "diameter_z": 7},
+    # {"theta": .06,     "z": 40.0,   "diameter_theta": np.pi / 8, "diameter_z": 7},
+    # {"theta": .06,     "z": 30.0,   "diameter_theta": np.pi / 8, "diameter_z": 7},
+    # {"theta": .06,     "z": 20.0,   "diameter_theta": np.pi / 8, "diameter_z": 7},
 ]
 
 marker_points = [
     {"theta": np.pi / 2, "z": 150},
-    {"theta": np.pi / 2, "z": 100},
-    {"theta": np.pi / 2, "z": 50},
-    {"theta": np.pi / 2, "z": 10},
+    # {"theta": np.pi / 2, "z": 100},
+    # {"theta": np.pi / 2, "z": 50},
+    # {"theta": np.pi / 2, "z": 10},
     # {"theta": 3 * np.pi / 4, "z": 2.8},
     # {"theta": 3 * np.pi / 4, "z": 2.9},
     # {"theta": 3 * np.pi / 4, "z": 3.0},
@@ -112,15 +112,20 @@ class PyVistaWindow(QMainWindow):
         self.control_panel = ControlWidget()
         h_layout.addWidget(self.control_panel, stretch=1)
 
+
+        # 初始化时默认加载第一条样本，可以选择加载其他样本
         self.control_panel.ui.opacity.valueChanged.connect(self.set_opacity)
+        self.control_panel.ui.btn_clean.clicked.connect(self.clean_all)
+        self.control_panel.ui.btn_load_sample.clicked.connect(self.load_sample)
+        self.control_panel.ui.btn_prev.clicked.connect(self.load_sample_prev)
+        self.control_panel.ui.btn_next.clicked.connect(self.load_sample_next)
 
-        # 创建锥体并添加到渲染器
-        # cone = pv.Cone(resolution=8)
-        # self.plotter.add_mesh(cone, color="red", show_edges=True)
-
-        # 设置背景颜色
-        #self.plotter.set_background("blue")
+        from csv_parser import CSVParser
+        self.parser = CSVParser()
+        self.add_log(f"加载成功 (样本量 {self.parser.length}) \n")
+        self.control_panel.ui.spinBox.setMaximum(self.parser.length - 1)
         self.init()
+
 
     def set_opacity(self, val: float):
         mesh = self.m.actor_mesh
@@ -137,24 +142,46 @@ class PyVistaWindow(QMainWindow):
         self.m.submit_markers()
         # self.m._add_arrow()
 
+        # 加载样本
+        self.load_sample()
+        
+    def load_sample_prev(self):
+        sample_id = int(self.control_panel.ui.spinBox.value())
+        if sample_id > 0:
+            self.control_panel.ui.spinBox.setValue(sample_id - 1)
+            self.load_sample()
+
+    def load_sample_next(self):
+        sample_id = int(self.control_panel.ui.spinBox.value())
+        if sample_id < self.parser.length - 1:
+            self.control_panel.ui.spinBox.setValue(sample_id + 1)
+            self.load_sample()
+        
+    def load_sample(self):
+        # 清空
+        self.clean_all()
+
+        # 加载指定样本
+        sample_id = int(self.control_panel.ui.spinBox.value())
+        self.add_log(f"加载样本 {sample_id} / (样本量 {self.parser.length}) \n")
+        # 顶面底面
         # self.m._add_box(
         #     0,0, 150, 30,30, 0.001, 
         #     color="yellow", opacity=0.1, show_edges=True)
-        
-        # 底面
         self.m._add_box(
             0,0, 0, 100,100, 0.001, 
             color="yellow", opacity=0.1, show_edges=True)
 
-        # 添加旋转矩形
-        from csv_parser import CSVParser
-        parser = CSVParser()
-        # for i in range(300, parser.length):
-        # for i in range(parser.length):
-        i = 0
-        rect = parser.get(i)
+        rect = self.parser.get(sample_id)
         self.m.add_rotated_rectangle(rect)
         self.m.submit(opacity=1)
+
+    def add_log(self, msg):
+        self.control_panel.ui.txt_log.insertPlainText(msg)
+
+    def clean_all(self):
+        self.m.clean_all()
+
 
 
 if __name__ == "__main__":
