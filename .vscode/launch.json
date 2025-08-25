@@ -1,0 +1,23 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "fastapi 服务",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "main.py",
+            "args": ["backend"],
+            "justMyCode": false,
+            "subProcess": true,
+        },
+        {
+            "name":"Py 调试: 当前文件",
+            "type":"debugpy",
+            "request":"launch",
+            "program":"${file}",
+            "console":"integratedTerminal",
+            "justMyCode": false,
+            "subProcess": true,
+        },
+    ]
+}
