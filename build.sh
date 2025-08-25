@@ -1,1 +1,4 @@
-auto-py-to-exe -c .vscode/dist.json
+auto-py-to-exe ./app.py \
+    -c .vscode/dist.json \
+    --output-dir output \
+    --language zh

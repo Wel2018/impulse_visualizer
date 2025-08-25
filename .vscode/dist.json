@@ -7,7 +7,7 @@
   },
   {
    "optionDest": "filenames",
-   "value": "C:/wk/Codehub/0/phimate/tmp.dist.py"
+   "value": "D:/wk/Codehub/0/impulse_visualizer/app.py"
   },
   {
    "optionDest": "onefile",
@@ -68,6 +68,10 @@
   {
    "optionDest": "excludes",
    "value": "PySide6.QtQml"
+  },
+  {
+   "optionDest": "datas",
+   "value": "D:/wk/Codehub/0/impulse_visualizer/visualization.csv;."
   }
  ],
  "nonPyinstallerOptions": {
