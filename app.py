@@ -23,19 +23,12 @@ os.environ["QT_API"] = "pyside6"
 # 一共有300多组数据，前面的都是两个冲击的，后面有81个4个冲击的
 
 heat_spots = [
-    {"theta": np.pi,     "z": 15.0, "diameter_theta": np.pi / 8, "diameter_z": 0.7},
-    # {"theta": np.pi,     "z": 10.0, "diameter_theta": np.pi / 4, "diameter_z": 2},
-    # {"theta": np.pi,     "z": 6.0,  "diameter_theta": np.pi / 8, "diameter_z": 0.7},
-    # {"theta": np.pi,     "z": 5.0,  "diameter_theta": np.pi / 8, "diameter_z": 0.7},
-    # {"theta": np.pi,     "z": 4.0,  "diameter_theta": np.pi / 8, "diameter_z": 0.7},
-    # {"theta": np.pi,     "z": 3.0,  "diameter_theta": np.pi / 8, "diameter_z": 0.7},
-    # {"theta": np.pi,     "z": 2.0,  "diameter_theta": np.pi / 8, "diameter_z": 0.7},
     # {"theta": np.pi,     "z": 100.0,  "diameter_theta": np.pi / 8, "diameter_z": 7},
     # {"theta": np.pi,     "z": 60.0,   "diameter_theta": np.pi / 8, "diameter_z": 7},
-    # {"theta": np.pi,     "z": 50.0,   "diameter_theta": np.pi / 8, "diameter_z": 7},
-    # {"theta": .06,     "z": 40.0,   "diameter_theta": np.pi / 8, "diameter_z": 7},
-    # {"theta": .06,     "z": 30.0,   "diameter_theta": np.pi / 8, "diameter_z": 7},
-    # {"theta": .06,     "z": 20.0,   "diameter_theta": np.pi / 8, "diameter_z": 7},
+    {"theta": .5,     "z": 50.0,   "diameter_theta": np.pi / 8, "diameter_z": 20},
+    {"theta": .06,     "z": 60.0,   "diameter_theta": np.pi / 8, "diameter_z": 7},
+    {"theta": .06,     "z": 50.0,   "diameter_theta": np.pi / 8, "diameter_z": 7},
+    {"theta": .06,     "z": 20.0,   "diameter_theta": np.pi / 4, "diameter_z": 7},
 ]
 
 marker_points = [
@@ -44,17 +37,17 @@ marker_points = [
     # {"theta": np.pi / 2, "z": 50},
     # {"theta": np.pi / 2, "z": 10},
     # {"theta": 3 * np.pi / 4, "z": 2.8},
-    # {"theta": 3 * np.pi / 4, "z": 2.9},
-    # {"theta": 3 * np.pi / 4, "z": 3.0},
-    # {"theta": 3 * np.pi / 4, "z": 3.1},
-    # {"theta": 3 * np.pi / 4, "z": 3.2},
-    # {"theta": 3 * np.pi / 4, "z": 3.3},
-    # {"theta": 2.9 * np.pi / 4, "z": 3.3},
-    # {"theta": 2.8 * np.pi / 4, "z": 3.3},
-    # {"theta": 2.7 * np.pi / 4, "z": 3.3},
-    # {"theta": 2.6 * np.pi / 4, "z": 3.3},
-    # {"theta": 2.5 * np.pi / 4, "z": 3.3},
-    # {"theta": np.pi, "z": 3.0},
+    {"theta": 3 * np.pi / 4, "z": 2.9},
+    {"theta": 3 * np.pi / 4, "z": 3.0},
+    {"theta": 3 * np.pi / 4, "z": 3.1},
+    {"theta": 3 * np.pi / 4, "z": 3.2},
+    {"theta": 3 * np.pi / 4, "z": 3.3},
+    {"theta": 2.9 * np.pi / 4, "z": 3.3},
+    {"theta": 2.8 * np.pi / 4, "z": 3.3},
+    {"theta": 2.7 * np.pi / 4, "z": 3.3},
+    {"theta": 2.6 * np.pi / 4, "z": 3.3},
+    {"theta": 2.5 * np.pi / 4, "z": 3.3},
+    {"theta": np.pi, "z": 3.0},
 ]
 
 
@@ -135,11 +128,11 @@ class PyVistaWindow(QMainWindow):
         from hot_cylinder import HotCylinder
         self.m = HotCylinder(self.pl)
         self.m.create_body(150, 80 // 2, 50, 50)
-        self.m.add_heat_spots(heat_spots)
+        # self.m.add_heat_spots(heat_spots)
 
         # 添加标记
-        self.m.add_markers(marker_points)
-        self.m.submit_markers()
+        # self.m.add_markers(marker_points)
+        # self.m.submit_markers()
         # self.m._add_arrow()
 
         # 加载样本
@@ -160,7 +153,7 @@ class PyVistaWindow(QMainWindow):
     def load_sample(self):
         # 清空
         self.clean_all()
-
+        # self.m.add_heat_spots(heat_spots)
         # 加载指定样本
         sample_id = int(self.control_panel.ui.spinBox.value())
         self.add_log(f"加载样本 {sample_id} / (样本量 {self.parser.length}) \n")

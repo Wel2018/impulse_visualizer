@@ -3,7 +3,7 @@
 
 
 #define MyAppName "Impulse Visualizer"
-#define MyAppVersion "0.2.6"
+#define MyAppVersion "0.1.0"
 #define MyAppPublisher "Westlake University"
 #define MyAppURL "https://github.com/Wel2018/impulse_visualizer"
 #define MyAppExeBaseName "app"
@@ -24,23 +24,23 @@ AppPublisher={#MyAppPublisher}
 AppPublisherURL={#MyAppURL}
 AppSupportURL={#MyAppURL}
 AppUpdatesURL={#MyAppURL}
-;DefaultDirName={autopf}\{#MyAppName}
-DefaultDirName=.\output\app
+DefaultDirName={autopf}\{#MyAppName}
+;DefaultDirName=.\output\app
 ChangesAssociations=yes
 DisableProgramGroupPage=yes
 
 ; Remove the following line to run in administrative install mode (install for all users.)
 PrivilegesRequired=lowest
 PrivilegesRequiredOverridesAllowed=dialog
-OutputDir=.\
+OutputDir=.\output
 OutputBaseFilename=setup-{#MyAppName}-{#MyAppVersion}
-Compression=zip
-SolidCompression=yes
+;Compression=zip
+;SolidCompression=yes
 WizardStyle=modern
 
 [Languages]
-; Name: "chinesesimplified"; MessagesFile: "compiler:Languages\ChineseSimplified.isl"
-Name: "english"; MessagesFile: "compiler:Default.isl"
+Name: "chinesesimplified"; MessagesFile: "compiler:Languages\ChineseSimplified.isl"
+;Name: "english"; MessagesFile: "compiler:Default.isl"
 
 
 [Tasks]
