@@ -25,29 +25,28 @@ os.environ["QT_API"] = "pyside6"
 heat_spots = [
     # {"theta": np.pi,     "z": 100.0,  "diameter_theta": np.pi / 8, "diameter_z": 7},
     # {"theta": np.pi,     "z": 60.0,   "diameter_theta": np.pi / 8, "diameter_z": 7},
-    {"theta": .5,     "z": 50.0,   "diameter_theta": np.pi / 8, "diameter_z": 20},
-    {"theta": .06,     "z": 60.0,   "diameter_theta": np.pi / 8, "diameter_z": 7},
-    {"theta": .06,     "z": 50.0,   "diameter_theta": np.pi / 8, "diameter_z": 7},
+    # {"theta": .5,     "z": 50.0,   "diameter_theta": np.pi / 8, "diameter_z": 20},
+    # {"theta": .06,     "z": 60.0,   "diameter_theta": np.pi / 8, "diameter_z": 7},
+    # {"theta": .06,     "z": 50.0,   "diameter_theta": np.pi / 8, "diameter_z": 7},
     {"theta": .06,     "z": 20.0,   "diameter_theta": np.pi / 4, "diameter_z": 7},
 ]
 
 marker_points = [
-    {"theta": np.pi / 2, "z": 150},
+    # {"theta": np.pi / 2, "z": 150},
     # {"theta": np.pi / 2, "z": 100},
     # {"theta": np.pi / 2, "z": 50},
     # {"theta": np.pi / 2, "z": 10},
     # {"theta": 3 * np.pi / 4, "z": 2.8},
     {"theta": 3 * np.pi / 4, "z": 2.9},
-    {"theta": 3 * np.pi / 4, "z": 3.0},
-    {"theta": 3 * np.pi / 4, "z": 3.1},
-    {"theta": 3 * np.pi / 4, "z": 3.2},
-    {"theta": 3 * np.pi / 4, "z": 3.3},
-    {"theta": 2.9 * np.pi / 4, "z": 3.3},
-    {"theta": 2.8 * np.pi / 4, "z": 3.3},
-    {"theta": 2.7 * np.pi / 4, "z": 3.3},
-    {"theta": 2.6 * np.pi / 4, "z": 3.3},
-    {"theta": 2.5 * np.pi / 4, "z": 3.3},
-    {"theta": np.pi, "z": 3.0},
+    # {"theta": 3 * np.pi / 4, "z": 3.0},
+    # {"theta": 3 * np.pi / 4, "z": 3.1},
+    # {"theta": 3 * np.pi / 4, "z": 3.2},
+    # {"theta": 3 * np.pi / 4, "z": 3.3},
+    # {"theta": 2.9 * np.pi / 4, "z": 3.3},
+    # {"theta": 2.8 * np.pi / 4, "z": 3.3},
+    # {"theta": 2.7 * np.pi / 4, "z": 3.3},
+    # {"theta": 2.6 * np.pi / 4, "z": 3.3},
+    # {"theta": 2.5 * np.pi / 4, "z": 3.3},
 ]
 
 
@@ -67,7 +66,7 @@ class PyVistaWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         # PyVista in PySide6
-        self.setWindowTitle("Cylinder Impulse Visualizer (2025-08-25)")
+        self.setWindowTitle("Cylinder Impulse Visualizer (2025-08-28)")
         self.setGeometry(100, 100, 1000, 600)
 
         main_widget = QWidget()
@@ -105,7 +104,6 @@ class PyVistaWindow(QMainWindow):
         self.control_panel = ControlWidget()
         h_layout.addWidget(self.control_panel, stretch=1)
 
-
         # 初始化时默认加载第一条样本，可以选择加载其他样本
         self.control_panel.ui.opacity.valueChanged.connect(self.set_opacity)
         self.control_panel.ui.btn_clean.clicked.connect(self.clean_all)
@@ -113,11 +111,29 @@ class PyVistaWindow(QMainWindow):
         self.control_panel.ui.btn_prev.clicked.connect(self.load_sample_prev)
         self.control_panel.ui.btn_next.clicked.connect(self.load_sample_next)
 
+        # 相机聚焦
+        self.control_panel.ui.btn_focus_body.clicked.connect(self.focus_body)
+        self.control_panel.ui.btn_focus_bottom.clicked.connect(self.focus_bottom)
+        self.control_panel.ui.btn_focus_side.clicked.connect(self.focus_side)
+
         from csv_parser import CSVParser
         self.parser = CSVParser()
         self.add_log(f"加载成功 (样本量 {self.parser.length}) \n")
         self.control_panel.ui.spinBox.setMaximum(self.parser.length - 1)
         self.init()
+
+    def focus_body(self):
+        # xy, xz, yz, yx, zx, zy, iso
+        # self.pl.camera_position = "xyz"
+        self.m.pl.fly_to(self.m.mesh_body.center) # type: ignore
+
+    def focus_bottom(self):
+        # self.pl.camera_position = "xz"
+        self.m.pl.fly_to(self.m.mesh_bottom.center) # type: ignore
+
+    def focus_side(self):
+        # self.pl.camera_position = "yz"
+        self.m.pl.fly_to(self.m.mesh_side.center) # type: ignore
 
 
     def set_opacity(self, val: float):
@@ -161,13 +177,14 @@ class PyVistaWindow(QMainWindow):
         # self.m._add_box(
         #     0,0, 150, 30,30, 0.001, 
         #     color="yellow", opacity=0.1, show_edges=True)
-        self.m._add_box(
-            0,0, 0, 100,100, 0.001, 
+
+        self.m._add_box(0,0, 0, 100,100, 0.001, 
             color="yellow", opacity=0.1, show_edges=True)
 
-        rect = self.parser.get(sample_id)
-        self.m.add_rotated_rectangle(rect)
+        p = self.parser.get(sample_id)
+        self.m.add_rotated_rectangle(p)
         self.m.submit(opacity=1)
+        # self.m.submit(opacity=0.5)
 
     def add_log(self, msg):
         self.control_panel.ui.txt_log.insertPlainText(msg)

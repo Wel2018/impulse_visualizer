@@ -3,7 +3,7 @@
 
 
 #define MyAppName "Impulse Visualizer"
-#define MyAppVersion "0.1.0"
+#define MyAppVersion "0.2.0"
 #define MyAppPublisher "Westlake University"
 #define MyAppURL "https://github.com/Wel2018/impulse_visualizer"
 #define MyAppExeBaseName "app"

@@ -55,6 +55,13 @@
      </item>
      <item>
       <layout class="QGridLayout" name="gridLayout">
+       <item row="0" column="0">
+        <widget class="QLabel" name="label_3">
+         <property name="text">
+          <string>选择样本</string>
+         </property>
+        </widget>
+       </item>
        <item row="0" column="1">
         <widget class="QPushButton" name="btn_prev">
          <property name="text">
@@ -69,13 +76,6 @@
          </property>
         </widget>
        </item>
-       <item row="1" column="2">
-        <widget class="QPushButton" name="btn_load_sample">
-         <property name="text">
-          <string>加载样本</string>
-         </property>
-        </widget>
-       </item>
        <item row="1" column="0">
         <widget class="QLabel" name="label_2">
          <property name="text">
@@ -83,15 +83,47 @@
          </property>
         </widget>
        </item>
-       <item row="0" column="0">
-        <widget class="QLabel" name="label_3">
+       <item row="1" column="1">
+        <widget class="QSpinBox" name="spinBox"/>
+       </item>
+       <item row="1" column="2">
+        <widget class="QPushButton" name="btn_load_sample">
          <property name="text">
-          <string>选择样本</string>
+          <string>加载样本</string>
          </property>
         </widget>
        </item>
-       <item row="1" column="1">
-        <widget class="QSpinBox" name="spinBox"/>
+      </layout>
+     </item>
+     <item>
+      <layout class="QHBoxLayout" name="horizontalLayout_3">
+       <item>
+        <widget class="QLabel" name="label_5">
+         <property name="text">
+          <string>摄像头聚焦</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="btn_focus_body">
+         <property name="text">
+          <string>圆柱体</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="btn_focus_bottom">
+         <property name="text">
+          <string>投影面</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="btn_focus_side">
+         <property name="text">
+          <string>冲量点</string>
+         </property>
+        </widget>
        </item>
       </layout>
      </item>
@@ -122,17 +154,17 @@
        </item>
       </layout>
      </item>
+     <item>
+      <widget class="QTextEdit" name="txt_log"/>
+     </item>
+     <item>
+      <widget class="QPushButton" name="btn_clean">
+       <property name="text">
+        <string>x</string>
+       </property>
+      </widget>
+     </item>
     </layout>
-   </item>
-   <item row="1" column="0">
-    <widget class="QTextEdit" name="txt_log"/>
-   </item>
-   <item row="2" column="0">
-    <widget class="QPushButton" name="btn_clean">
-     <property name="text">
-      <string>x</string>
-     </property>
-    </widget>
    </item>
   </layout>
  </widget>
