@@ -154,7 +154,7 @@
           // "background": "#FF3300"
       },
     ],
-    "todo-tree.general.rootFolder": "${workspaceFolder}/client",
+    "todo-tree.general.rootFolder": "${workspaceFolder}",
     "todo-tree.general.showActivityBarBadge": true,
     "todo-tree.general.showIconsInsteadOfTagsInStatusBar": false,
     "todo-tree.general.statusBar": "none",
@@ -184,6 +184,7 @@
     "marscode.enableInlineCommand": true,
     // "qtForPython.designer.path": "/home/dell/data/code/phimate/.venv/bin/pyside6-designer",
     // "qtForPython.uic.path": "/home/dell/data/code/phimate/.venv/bin/pyside6-uic",
-    "qtForPython.designer.path": "D:\\wk\\Codehub\\0\\phimate\\.venv\\Scripts\\pyside6-designer.exe",
-    "qtForPython.uic.path": "D:\\wk\\Codehub\\0\\phimate\\.venv\\Scripts\\pyside6-uic.exe",
+    "qtForPython.designer.path": "${env:PYSIDE6_DESIGNER}",
+    "qtForPython.uic.path": "${env:PYSIDE6_UIC}",
+    "github.copilot.chat.codeGeneration.useInstructionFiles": true,
 }

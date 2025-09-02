@@ -1,0 +1,6 @@
+pyvista[all]
+pyvistaqt
+pyside6
+auto-py-to-exe
+pillow
+numpy
