@@ -80,26 +80,6 @@ class PyVistaWindow(QMainWindow):
         self.pl = QtInteractor(self) # type: ignore
         h_layout.addWidget(self.pl, stretch=3)
 
-        # # 右侧控制面板
-        # control_panel = QWidget()
-        # v_layout = QVBoxLayout()
-        # control_panel.setLayout(v_layout)
-
-        # # 添加两个按钮
-        # btn1 = QPushButton("加载数据")
-        # btn2 = QPushButton("可视化")
-        # v_layout.addWidget(btn1)
-        # v_layout.addWidget(btn2)
-
-        # # 添加文本框
-        # text_box = QLineEdit()
-        # text_box.setPlaceholderText("请输入文件路径")
-        # text_box.setText("visualization.csv")
-        # v_layout.addWidget(text_box)
-
-        # # 添加弹性空间，使控件靠上
-        # v_layout.addStretch()
-
         # # 将控制面板加入水平布局
         self.control_panel = ControlWidget()
         h_layout.addWidget(self.control_panel, stretch=1)
@@ -137,8 +117,9 @@ class PyVistaWindow(QMainWindow):
 
 
     def set_opacity(self, val: float):
-        mesh = self.m.actor_mesh
-        mesh.GetProperty().SetOpacity(val / 100)
+        for mesh in [self.m.actor_body, self.m.actor_top, self.m.actor_bottom]:
+            if mesh is not None:
+                mesh.GetProperty().SetOpacity(val / 100)
 
     def init(self):
         from hot_cylinder import HotCylinder
@@ -173,13 +154,23 @@ class PyVistaWindow(QMainWindow):
         # 加载指定样本
         sample_id = int(self.control_panel.ui.spinBox.value())
         self.add_log(f"加载样本 {sample_id} / (样本量 {self.parser.length}) \n")
-        # 顶面底面
-        # self.m._add_box(
-        #     0,0, 150, 30,30, 0.001, 
-        #     color="yellow", opacity=0.1, show_edges=True)
 
-        self.m._add_box(0,0, 0, 100,100, 0.001, 
-            color="yellow", opacity=0.1, show_edges=True)
+        # 顶面底面
+        # self.m._add_box(0,0, 150, 30,30, 0.001, color="yellow", opacity=0.1, show_edges=True)
+        # self.m._add_box(0,0, 0, 100,100, 0.001, color="yellow", opacity=0.1, show_edges=True)
+
+        def _add_ellipse(z):
+            return self.m._add_ellipse(
+                0,0,z, 40, 40, 0.001, 100, 
+                color="blue", opacity=0.5, show_edges=True) # type: ignore
+        
+        # x 给圆柱体添加顶面和底面
+        self.m.actor_top = _add_ellipse(0) # type: ignore
+        self.m.actor_bottom = _add_ellipse(150) # type: ignore
+        
+        # self.m.load_3d_file("cup.stl", 1500)
+
+        # self.m._add_plane()
 
         p = self.parser.get(sample_id)
         self.m.add_rotated_rectangle(p)

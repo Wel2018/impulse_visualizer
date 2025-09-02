@@ -8,8 +8,8 @@ from scipy.spatial.transform import Rotation as R
 
 
 
-class HotCylinder():
-    """在 pyvista 空间中绘制圆柱体，要求可视化网格、热图、标记点、法向箭头等"""
+class HotCylinder:
+    """在 pyvista 空间中绘制圆柱体，支持可视化网格、热图、标记点、法向箭头等"""
     def __init__(self, pl: QtInteractor) -> None:
         self.pl: pv.Plotter = pl
         self.pl.set_background("#303c64") # type: ignore
@@ -49,6 +49,36 @@ class HotCylinder():
         self.mesh_body = grid
         self.mesh_bottom = None
         self.mesh_side = None
+
+        # 用于可视化的对象，包括顶面和底面
+        self.actor_body = None
+        self.actor_top = None
+        self.actor_bottom = None
+
+    def load_3d_file(self, filename: str = "", scale=1.0):
+        """加载一个 3D 文件（支持多种格式），并将其添加到场景中"""
+        try:
+            # 加载 3D 模型文件
+            mesh = pv.read(filename)
+            
+            # 将模型的中心移动到 (0, 0, 0)
+            center = mesh.center
+            print(f"模型中心: {center}")
+            mesh.points -= center
+            
+            # 缩小尺寸到 0.2 倍
+            mesh.points *= scale
+            
+            # 将模型的底部移动到 z = 0
+            bounds = mesh.bounds
+            z_min = bounds[4]  # 获取 z 的最小值
+            mesh.points[:, 2] -= z_min
+            
+            # 将 3D 模型添加到场景
+            self.pl.add_mesh(mesh, show_edges=True, opacity=0.5) # type: ignore
+            print(f"成功加载文件: {filename}")
+        except Exception as e:
+            print(f"加载文件失败: {filename}, 错误: {e}")
 
 
     def _add_heat_spot(self, theta, z, diameter_theta=np.pi / 8, diameter_z=7):
@@ -107,9 +137,63 @@ class HotCylinder():
     def _add_box(
             self, x,y,z,width,length,height,**kargs,
         ):
-        box = pv.Box(bounds=[x-width/2, x+width/2, y-length/2, y+length/2, z-height/2, z+height/2])
+        box = pv.Box(bounds=[
+            x-width/2, 
+            x+width/2, 
+            y-length/2, 
+            y+length/2, 
+            z-height/2, 
+            z+height/2])
         el = self.pl.add_mesh(box, **kargs)
         self.el[f"box_{self.el_idx}"] = el
+        self.el_idx += 1
+
+    def _add_ellipse(
+            self, x, y, z, a, b, height, resolution=100, **kargs,
+        ):
+        """
+        添加一个椭圆柱体，底面为椭圆，中心在 (x, y, z)，
+        a 为椭圆长轴半径，b 为椭圆短轴半径，height 为高度。
+        """
+        # 创建椭圆柱体
+        theta = np.linspace(0, 2 * np.pi, resolution)
+        ellipse_points = np.column_stack((a * np.cos(theta), b * np.sin(theta), np.zeros_like(theta)))
+        top_points = ellipse_points + np.array([0, 0, height])
+        points = np.vstack((ellipse_points, top_points))
+
+        # 定义椭圆柱体的面
+        faces = []
+        n = len(ellipse_points)
+        for i in range(n):
+            next_i = (i + 1) % n
+            # 侧面
+            faces.append([4, i, next_i, next_i + n, i + n])
+        # 底面
+        faces.append([n] + list(range(n)))
+        # 顶面
+        faces.append([n] + list(range(n, 2 * n)))
+
+        # 创建 PolyData
+        faces = np.hstack(faces)
+        ellipse_cylinder = pv.PolyData(points, faces)
+
+        # 平移到指定位置
+        ellipse_cylinder.points += np.array([x, y, z])
+
+        # 添加到场景
+        el = self.pl.add_mesh(ellipse_cylinder, **kargs)
+        self.el[f"ellipse_{self.el_idx}"] = el
+        self.el_idx += 1
+        return el
+
+    def _add_plane(self, i_size=1e2, j_size=1e2, i_resolution=10, j_resolution=10):
+        plane = pv.Plane(
+            i_size=i_size, 
+            j_size=j_size, 
+            i_resolution=i_resolution, 
+            j_resolution=j_resolution)
+        el = self.pl.add_mesh(plane, show_edges=True)
+        self.el[f"plane_{self.el_idx}"] = el
         self.el_idx += 1
 
     def add_markers(self, markers: list):
@@ -166,7 +250,7 @@ class HotCylinder():
 
 
     def submit(self, **kargs):
-        self.actor_mesh = self.pl.add_mesh(
+        self.actor_body = self.pl.add_mesh(
             self.body_grid, # type: ignore
             scalars="heat",
             cmap="rainbow",
@@ -179,7 +263,7 @@ class HotCylinder():
             # opacity=0.9
             **kargs
         )
-        self.el["body"] = self.actor_mesh
+        self.el["body"] = self.actor_body
 
     # 旋转矩形 -------------------------------------------------
 
@@ -281,7 +365,7 @@ class HotCylinder():
         rot_z = R.from_euler('z', angle_deg+90, degrees=True)
         rotated_corners = rot_z.apply(local_corners) + center
 
-        # ✅ 指定绕局部 x 或 y 倾斜（默认是 y 轴）
+        # 指定绕局部 x 或 y 倾斜（默认是 y 轴）
         if tilt_axis == 'x':
             local_axis = np.array([1, 0, 0])
         elif tilt_axis == 'y':
@@ -352,7 +436,7 @@ class HotCylinder():
 
         # 计算投影点
         proj_points = self.project_onto_cylinder_side(points, normal, 40)
-        print(f"投影点：{proj_points}")
+        # print(f"投影点：{proj_points}")
 
         # 将4个投影点绘制到
         for i in range(4):
@@ -379,6 +463,8 @@ class HotCylinder():
         L = rect_center['length']
         A = rect_center['angle']
 
+        # x 支持多冲量
+        # 提取冲量
         # I0 = rect_impulse[0]
         # rect_impulse=[
         # {'x': -5.71307792, 'y': -0.315346005, 'z': 0.042880973}, 
@@ -390,101 +476,38 @@ class HotCylinder():
                 impulse_dict['x'], 
                 impulse_dict['y'], 
                 impulse_dict['z']])
-        I0 = impulses[0]
-        I1 = impulses[1]
-        
+            
+        # I0 = impulses[0]
+        # I1 = impulses[1]
 
-        # 添加底面的旋转矩形，这是空间中多个旋转矩形投影的结果
-        mesh_0 = self.create_base_rotated_rectangle(x,y, 0, W,L,A)
-        act_0 = self.pl.add_mesh(mesh_0, color="yellow", opacity=1, show_edges=True)
-        self.mesh_bottom = mesh_0
-
-        # mesh_1 = self.create_base_rotated_rectangle(x,y, z, W,L,A)
-        # act_1 = self.pl.add_mesh(mesh_1, color="yellow", opacity=1, show_edges=True)
-
-        mesh_2 = self.create_tilted_rectangle_by_impulse(x,y,z,W,L,A,I0)
-        act_2 = self.pl.add_mesh(mesh_2, color="#ffea00", opacity=0.8, show_edges=True)
-
-        mesh_3 = self.create_tilted_rectangle_by_impulse(x,y,z,W,L,A,I1)
-        act_3 = self.pl.add_mesh(mesh_3, color="#ffea00", opacity=0.8, show_edges=True)
-
-        proj_2 = self.proj_rotated_box_to_cylinder(mesh_2, color="#7CD424", opacity=0.8, show_edges=True)
-        proj_3 = self.proj_rotated_box_to_cylinder(mesh_3, color="#7CD424", opacity=0.8, show_edges=True)
-
-        self.mesh_side = proj_2
-
-        # mesh_3 = self.create_tilted_rectangle_by_impulse(x,y,z,W,L,A,I1)
-        # act_3 = self.pl.add_mesh(mesh_3, color="#fea711", opacity=0.8, show_edges=True)
-
-        # points, rot_x = self.create_rotated_rectangle(
-        #     rect_center["x"],
-        #     rect_center["y"],
-        #     # rect_center["z"],
-        #     0,
-        #     rect_center["width"],
-        #     rect_center["length"],
-        #     rect_center["angle"],
-        # )
-
-        # 使用 PolyData + 面连接
-        # faces = [4, 0, 1, 2, 3]  # 4个点构成一个面
-        # mesh = pv.PolyData(points, faces)
-        # self.pl.remove_actor()
-
-        # 法向量：原始平面的法向量 (0,0,1) 经过旋转矩阵
-        # normal_local = np.array([0, 0, 1])
-        # normal_world = rot_x @ normal_local
-
-        # print(normal_world)
-
-        arrow_center = np.array([
-            rect_center["x"], 
-            rect_center["y"], 
-            rect_center["z"]])
-        
-        # 在中心点绘制箭头
-        # self.pl.add_arrows(
-        # arrow_center, 
-        # normal_world, 
-        # mag=1.0, 
-        # color="white")
-
-        # 前三个是中心点的坐标
-        # 4-6为矩形的长、宽、以及旋转绕x轴旋转的角度
-        # 7-21每三个为法向量的x，y，z的方向，如果xyz都为0则不存在这个冲击
-        # 一共有300多组数据，前面的都是两个冲击的，后面有81个4个冲击的
-        # for impluse in rect_impulse:
-        #     vec = normal_world.copy()
-        #     # vec = normal_local.copy()
-        #     # normal_local = np.array([0, 0, 1])
-        #     # normal_world = rot_x @ normal_local
-        #     vec[0] += impluse["x"] * scale
-        #     vec[1] += impluse["y"] * scale
-        #     vec[2] += impluse["z"] * scale
-        #     self.pl.add_arrows(
-        #         arrow_center,
-        #         vec, 
-        #         # normal_world, 
-        #         mag=2.0, 
-        #         color="#00ff33")
-        
-        # 将旋转矩形中心点对应的坐标转换为圆柱体坐标，并在外侧绘制一个热点
-        # x,y = arrow_center[0], arrow_center[1]
-        # theta = self.point_to_cylinder_coordinates(x, y)
-        # msg = f"x={x:.2f} y={y:.2f} \n theta={theta:.2f}"
-        # self._add_marker(theta, arrow_center[2], msg)
-        # self.submit_markers()
-        # self._add_heat_spot(theta, arrow_center[2])
-
-        def add_heat_spot_of_proj(proj_mesh):    
+        def add_heat_spot_of_proj(proj_mesh):
+            """根据投影后的矩形，计算其中心点，并添加热斑"""
             center = np.mean(proj_mesh.points, 0)
             x,y = center[0], center[1]
             theta = self.point_to_cylinder_coordinates(x, y)
             self._add_heat_spot(theta, center[2])
             # print(f"center:{center}")
 
-        add_heat_spot_of_proj(proj_2)
-        add_heat_spot_of_proj(proj_3)
+        # 底面旋转矩形 ----------
+        # 这是空间中多个旋转矩形投影的结果
+        mesh_0 = self.create_base_rotated_rectangle(x,y, 0, W,L,A)
+        act_0 = self.pl.add_mesh(mesh_0, color="yellow", opacity=1, show_edges=True)
+        self.mesh_bottom = mesh_0
+        
+        # FIXME 确保投影到侧壁上（判断下投影面的法向量方向）
+        for i in range(len(impulses)):
+            I = impulses[i]
+
+            # TODO 旋转矩形增加圆角
+            # 空间中的旋转矩形 -----------
+            mesh_i = self.create_tilted_rectangle_by_impulse(x,y,z,W,L,A,I)
+            act_i = self.pl.add_mesh(mesh_i, color="#ffea00", opacity=0.8, show_edges=True)
+
+            # 向圆柱体侧面投影 --------------------------
+            proj_i = self.proj_rotated_box_to_cylinder(mesh_i, color="#7CD424", opacity=0.8, show_edges=True)
+            # TODO 根据冲量调整热斑大小
+            add_heat_spot_of_proj(proj_i)
+            self.mesh_side = proj_i
 
 
     @staticmethod
