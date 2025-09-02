@@ -7,6 +7,105 @@ import pyvista as pv
 from scipy.spatial.transform import Rotation as R
 
 
+def create_rounded_rectangle_2d(width, length, radius=0.1, resolution=5):
+    """
+    创建一个带圆角的矩形（Z=0 平面上）
+
+    返回：
+        numpy 数组 (N, 3)
+    """
+    dx = width / 2
+    dy = length / 2
+
+    # 4个角的中心点（顺时针）
+    corners = np.array([
+        [ dx - radius,  dy - radius, 0],  # Top Right
+        [-dx + radius,  dy - radius, 0],  # Top Left
+        [-dx + radius, -dy + radius, 0],  # Bottom Left
+        [ dx - radius, -dy + radius, 0],  # Bottom Right
+    ])
+
+    # 每个角的起止角度（顺时针）
+    angle_sets = [
+        [0, np.pi / 2],              # top right
+        [np.pi / 2, np.pi],          # top left
+        [np.pi, 3 * np.pi / 2],      # bottom left
+        [3 * np.pi / 2, 2 * np.pi],  # bottom right
+    ]
+
+    # 构造完整边界点
+    points = []
+    for i in range(4):
+        center = corners[i]
+        start_a, end_a = angle_sets[i]
+        angles = np.linspace(start_a, end_a, resolution)
+        arc = np.stack([
+            center[0] + radius * np.cos(angles),
+            center[1] + radius * np.sin(angles),
+            np.zeros_like(angles)
+        ], axis=1)
+        points.append(arc)
+
+    return np.concatenate(points, axis=0)
+
+
+def create_tilted_rectangle_by_impulse_with_round(
+    x, y, z, width, length, angle_deg, impulse, tilt_axis='y',
+    corner_radius=0.1, corner_resolution=5
+):
+    """
+    创建一个绕局部坐标轴（x/y）旋转后的矩形，并带圆角。
+
+    参数：
+        x, y, z: 中心点位置
+        width, length: 矩形大小
+        angle_deg: 绕 Z 轴初始旋转角
+        impulse: 倾斜的冲量（向量）
+        tilt_axis: 'x' or 'y'
+        corner_radius: 圆角半径
+        corner_resolution: 圆角细分点数
+    返回：
+        pyvista.PolyData
+    """
+    center = np.array([x, y, z])
+    impulse = np.array(impulse, dtype=np.float64)
+
+    # 创建局部平面上的圆角矩形（Z=0）
+    local_rounded = create_rounded_rectangle_2d(width, length, corner_radius, corner_resolution)
+
+    # 绕 Z 轴旋转
+    rot_z = R.from_euler('z', angle_deg + 90, degrees=True)
+    rotated = rot_z.apply(local_rounded)
+
+    # 平移到中心点
+    transformed = rotated + center
+
+    # 确定倾斜轴
+    if tilt_axis == 'x':
+        local_axis = np.array([1, 0, 0])
+    elif tilt_axis == 'y':
+        local_axis = np.array([0, 1, 0])
+    else:
+        raise ValueError("tilt_axis must be 'x' or 'y'")
+
+    axis_world = rot_z.apply(local_axis)
+
+    # 计算冲量在垂直平面上的投影角度
+    impulse_proj = impulse - np.dot(impulse, axis_world) * axis_world
+    tilt_angle_rad = np.linalg.norm(impulse_proj)
+
+    # 倾斜旋转（绕中心点旋转）
+    if tilt_angle_rad >= 1e-6:
+        tilt_rot = R.from_rotvec(axis_world * tilt_angle_rad)
+        transformed = tilt_rot.apply(transformed - center) + center
+
+    # 构造面片
+    n = len(transformed)
+    faces = [n] + list(range(n))
+    return pv.PolyData(transformed, faces=faces)
+
+
+
 
 class HotCylinder:
     """在 pyvista 空间中绘制圆柱体，支持可视化网格、热图、标记点、法向箭头等"""
@@ -525,13 +624,15 @@ class HotCylinder:
         for i in range(len(impulses)):
             I = impulses[i]
 
-            # TODO 旋转矩形增加圆角
+            # x 给空间旋转矩形增加圆角
             # 空间中的旋转矩形 -----------
-            mesh_i = self.create_tilted_rectangle_by_impulse(x,y,z,W,L,A,I)
-            act_i = self.pl.add_mesh(mesh_i, color="#ffea00", opacity=0.8, show_edges=True)
+            # mesh_90a 是直角矩形，mesh_round 是圆角矩形，后者用于可视化，前者用于投影到圆柱体侧壁上
+            mesh_90a = self.create_tilted_rectangle_by_impulse(x,y,z,W,L,A,I)
+            mesh_round = create_tilted_rectangle_by_impulse_with_round(x,y,z,W,L,A,I, corner_radius=0.5,corner_resolution=10)
+            act_i = self.pl.add_mesh(mesh_round, color="#ffea00", opacity=0.8, show_edges=True)
 
             # 向圆柱体侧面投影 --------------------------
-            proj_i = self.proj_rotated_box_to_cylinder(mesh_i, color="#7CD424", opacity=0.8, show_edges=True)
+            proj_i = self.proj_rotated_box_to_cylinder(mesh_90a, color="#7CD424", opacity=0.8, show_edges=True)
             # x 根据冲量调整热斑大小
             add_heat_spot_of_proj(proj_i, I)
             self.mesh_side = proj_i
