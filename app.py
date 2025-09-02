@@ -174,7 +174,8 @@ class PyVistaWindow(QMainWindow):
 
         p = self.parser.get(sample_id)
         self.m.add_rotated_rectangle(p)
-        self.m.submit(opacity=1)
+        opacity = self.control_panel.ui.opacity.value() / 100
+        self.m.submit(opacity=opacity)
         # self.m.submit(opacity=0.5)
 
     def add_log(self, msg):

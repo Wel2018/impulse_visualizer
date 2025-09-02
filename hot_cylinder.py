@@ -10,6 +10,11 @@ from scipy.spatial.transform import Rotation as R
 
 class HotCylinder:
     """在 pyvista 空间中绘制圆柱体，支持可视化网格、热图、标记点、法向箭头等"""
+
+    # 使用投影矩形的尺寸确定热斑尺寸
+    # 否则使用冲量大小确定热斑尺寸
+    HOTSPOT_USE_PROJECT_RECT = 0  
+
     def __init__(self, pl: QtInteractor) -> None:
         self.pl: pv.Plotter = pl
         self.pl.set_background("#303c64") # type: ignore
@@ -81,7 +86,7 @@ class HotCylinder:
             print(f"加载文件失败: {filename}, 错误: {e}")
 
 
-    def _add_heat_spot(self, theta, z, diameter_theta=np.pi / 8, diameter_z=7):
+    def _add_heat_spot(self, theta, z, diameter_theta=np.pi / 8, diameter_z=7.0):
         """添加一个热点
         theta	        热点中心点的位置（沿 θ 方向，弧度值）
         z	            热点中心点的高度位置
@@ -465,27 +470,49 @@ class HotCylinder:
 
         # x 支持多冲量
         # 提取冲量
-        # I0 = rect_impulse[0]
-        # rect_impulse=[
-        # {'x': -5.71307792, 'y': -0.315346005, 'z': 0.042880973}, 
-        # {'x': -5.639038306, 'y': 2.633674107, 'z': 1.389024399}]
         # print(f"rect_impulse={rect_impulse}")
         impulses = []
         for impulse_dict in rect_impulses:
             impulses.append([
                 impulse_dict['x'], 
                 impulse_dict['y'], 
-                impulse_dict['z']])
-            
-        # I0 = impulses[0]
-        # I1 = impulses[1]
+                impulse_dict['z']
+            ])
 
-        def add_heat_spot_of_proj(proj_mesh):
+        def add_heat_spot_of_proj(proj_mesh: pv.DataSet, I: list):
             """根据投影后的矩形，计算其中心点，并添加热斑"""
+            # 以第一组 W 和 L 作为基准，后面每一组 W, L 计算对应变化比例
+            # W_base, L_base = 2.123870107, 12.50772838
+
+            if self.HOTSPOT_USE_PROJECT_RECT:
+                bounds_size = proj_mesh.bounds_size
+                # bounds_size=(1.0782151417882417, 18.67075790585579, 4.278444830355909)
+                # print(f"bounds_size={bounds_size}")
+                Y_base = 18.67075790585579
+                Z_base = 4.278444830355909
+                Y = bounds_size[1]
+                Z = bounds_size[2]
+                diameter_theta: float = np.pi / 6
+                diameter_z: float = 4
+                diameter_theta *= float(Y / Y_base)
+                diameter_z *= float(Z / Z_base) # type: ignore
+            else:
+                # 使用冲量大小确定热斑尺寸
+                imp_base = [-5.733554744, -0.040419444, -0.020479099]
+                diameter_theta: float = np.pi / 6
+                diameter_z: float = 4.0
+                Y = I[1]
+                Z = I[2]
+                Y_base = imp_base[1]
+                Z_base = imp_base[2]
+                diameter_theta = max(diameter_theta, diameter_theta * float(0.01 * Y / Y_base))
+                diameter_z = max(diameter_z, diameter_z * float(0.01 * Z / Z_base))
+
+
             center = np.mean(proj_mesh.points, 0)
             x,y = center[0], center[1]
             theta = self.point_to_cylinder_coordinates(x, y)
-            self._add_heat_spot(theta, center[2])
+            self._add_heat_spot(theta, center[2], diameter_theta, diameter_z)
             # print(f"center:{center}")
 
         # 底面旋转矩形 ----------
@@ -505,8 +532,8 @@ class HotCylinder:
 
             # 向圆柱体侧面投影 --------------------------
             proj_i = self.proj_rotated_box_to_cylinder(mesh_i, color="#7CD424", opacity=0.8, show_edges=True)
-            # TODO 根据冲量调整热斑大小
-            add_heat_spot_of_proj(proj_i)
+            # x 根据冲量调整热斑大小
+            add_heat_spot_of_proj(proj_i, I)
             self.mesh_side = proj_i
 
 
